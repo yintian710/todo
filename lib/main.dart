@@ -2,15 +2,31 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 
 import 'providers/todo_provider.dart';
 import 'services/config_service.dart';
 import 'services/database_service.dart';
 import 'pages/config_page.dart';
 import 'pages/home_page.dart';
+import 'multi_window_entry.dart' as multi_window_entry;
 
-void main() async {
+void main(List<String> args) async {
+  // 如果是子窗口，使用子窗口入口
+  if (args.firstOrNull == 'multi_window') {
+    multi_window_entry.main(args);
+    return;
+  }
+
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 注册子窗口入口点
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    DesktopMultiWindow.setMethodHandler((call, fromWindowId) async {
+      // 处理来自其他窗口的方法调用
+      return null;
+    });
+  }
 
   // 桌面平台窗口初始化
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
