@@ -266,7 +266,7 @@ class _BoardCardState extends State<BoardCard> {
                         const SizedBox(width: 8),
                         // 倒计时排序按钮
                         IconButton(
-                          icon: const Icon(Icons.sort, color: Colors.white),
+                          icon: const Icon(Icons.schedule, color: Colors.white),
                           tooltip: '按倒计时排序',
                           onPressed: _sortByDeadline,
                           padding: EdgeInsets.zero,

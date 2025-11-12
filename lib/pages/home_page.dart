@@ -51,6 +51,16 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _manualSync() {
+    context.read<TodoProvider>().loadData();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('正在同步数据...'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,6 +76,11 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.file_download),
             tooltip: '导入',
             onPressed: _navigateToImport,
+          ),
+          IconButton(
+            icon: const Icon(Icons.sync),
+            tooltip: '手动同步',
+            onPressed: _manualSync,
           ),
           IconButton(
             icon: const Icon(Icons.settings),
