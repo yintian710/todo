@@ -224,10 +224,85 @@ class _BoardCardState extends State<BoardCard> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // 工作板标题栏 - 可拖拽
-                GestureDetector(
-                  onPanStart: (details) {
-                    // 可以在这里实现拖拽开始的逻辑
-                  },
+                Draggable<Board>(
+                  data: widget.board,
+                  feedback: Material(
+                    elevation: 8,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+                    ),
+                    child: Container(
+                      width: 360,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: widget.board.color,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          topRight: Radius.circular(12),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.drag_indicator,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              widget.board.name,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  childWhenDragging: Opacity(
+                    opacity: 0.3,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: widget.board.color,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          topRight: Radius.circular(12),
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.drag_indicator,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              widget.board.name,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   child: Container(
                     decoration: BoxDecoration(
                       color: widget.board.color,
@@ -266,13 +341,19 @@ class _BoardCardState extends State<BoardCard> {
                           ),
                         ),
                         const SizedBox(width: 8),
+                        // 倒计时排序按钮
+                        IconButton(
+                          icon: const Icon(Icons.sort, color: Colors.white),
+                          tooltip: '按倒计时排序',
+                          onPressed: _sortByDeadline,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 8),
                         PopupMenuButton<String>(
                           icon: const Icon(Icons.more_vert, color: Colors.white),
                           onSelected: (value) {
                             switch (value) {
-                              case 'sort':
-                                _sortByDeadline();
-                                break;
                               case 'window':
                                 _openBoardWindow();
                                 break;
@@ -288,16 +369,6 @@ class _BoardCardState extends State<BoardCard> {
                             }
                           },
                           itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'sort',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.sort),
-                                  SizedBox(width: 8),
-                                  Text('按倒计时排序'),
-                                ],
-                              ),
-                            ),
                             if (Platform.isWindows ||
                                 Platform.isLinux ||
                                 Platform.isMacOS)

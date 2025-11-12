@@ -254,94 +254,90 @@ class _TaskItemState extends State<TaskItem> {
             ),
           ],
         ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () {
-              if (!widget.readOnly) {
-                context
-                    .read<TodoProvider>()
-                    .toggleTaskCompletion(widget.task);
-              }
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Checkbox
-                  Container(
-                    width: 20,
-                    height: 20,
-                    margin: const EdgeInsets.only(top: 2, right: 12),
-                    decoration: BoxDecoration(
-                      color: widget.task.isCompleted
-                          ? taskColor
-                          : Colors.transparent,
-                      border: Border.all(
-                        color: taskColor,
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(4),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 10,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Checkbox - 可点击切换完成状态
+              GestureDetector(
+                onTap: () {
+                  if (!widget.readOnly) {
+                    context
+                        .read<TodoProvider>()
+                        .toggleTaskCompletion(widget.task);
+                  }
+                },
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  margin: const EdgeInsets.only(top: 2, right: 12),
+                  decoration: BoxDecoration(
+                    color: widget.task.isCompleted
+                        ? taskColor
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: taskColor,
+                      width: 2,
                     ),
-                    child: widget.task.isCompleted
-                        ? const Icon(
-                            Icons.check,
-                            size: 14,
-                            color: Colors.white,
-                          )
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: widget.task.isCompleted
+                      ? const Icon(
+                          Icons.check,
+                          size: 14,
+                          color: Colors.white,
+                        )
+                      : null,
+                ),
+              ),
+
+              // 任务内容
+              Expanded(
+                child: Text(
+                  widget.task.title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    decoration: widget.task.isCompleted
+                        ? TextDecoration.lineThrough
                         : null,
+                    color: widget.task.isCompleted
+                        ? Colors.grey.shade600
+                        : Colors.black87,
                   ),
-
-                  // 任务内容
-                  Expanded(
-                    child: Text(
-                      widget.task.title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        decoration: widget.task.isCompleted
-                            ? TextDecoration.lineThrough
-                            : null,
-                        color: widget.task.isCompleted
-                            ? Colors.grey.shade600
-                            : Colors.black87,
-                      ),
-                    ),
-                  ),
-
-                  // 倒计时显示
-                  if (_countdownText.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(left: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isOverdue
-                            ? Colors.red.shade100
-                            : Colors.orange.shade100,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        _countdownText,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isOverdue ? Colors.red.shade900 : Colors.orange.shade900,
-                          fontFeatures: const [
-                            FontFeature.tabularFigures(),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
+                ),
               ),
-            ),
+
+              // 倒计时显示
+              if (_countdownText.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isOverdue
+                        ? Colors.red.shade100
+                        : Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    _countdownText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isOverdue ? Colors.red.shade900 : Colors.orange.shade900,
+                      fontFeatureSettings: const [
+                        FontFeature.tabularFigures(),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

@@ -126,18 +126,21 @@ class _HomePageState extends State<HomePage> {
             );
           }
 
-          // 横向排列工作板
-          return ListView.builder(
+          // 横向排列工作板 - 支持拖拽重排
+          return ReorderableListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.all(16),
             itemCount: provider.boards.length,
+            onReorder: (oldIndex, newIndex) {
+              provider.reorderBoards(oldIndex, newIndex);
+            },
             itemBuilder: (context, index) {
               final board = provider.boards[index];
               return Container(
+                key: ValueKey(board.id),
                 width: 380,
                 margin: const EdgeInsets.only(right: 16),
                 child: BoardCard(
-                  key: ValueKey(board.id),
                   board: board,
                   index: index,
                 ),
