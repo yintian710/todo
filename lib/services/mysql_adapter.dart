@@ -6,7 +6,7 @@ import 'database_adapter.dart';
 /// MySQL 数据库适配器
 class MySQLAdapter implements DatabaseAdapter {
   final String url;
-  MySQLConnection? _connection;
+  MySqlConnection? _connection;
 
   MySQLAdapter(this.url);
 
@@ -89,7 +89,7 @@ class MySQLAdapter implements DatabaseAdapter {
     ''');
   }
 
-  MySQLConnection get _conn {
+  MySqlConnection get _conn {
     if (_connection == null) {
       throw Exception('Database not initialized. Call initialize() first.');
     }
