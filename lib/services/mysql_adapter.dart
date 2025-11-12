@@ -96,6 +96,16 @@ class MySQLAdapter implements DatabaseAdapter {
     return _connection!;
   }
 
+  /// 将 DateTime 转换为 UTC（MySQL 要求）
+  DateTime? _toUtc(DateTime? dateTime) {
+    return dateTime?.toUtc();
+  }
+
+  /// 将 UTC DateTime 转换为本地时间
+  DateTime? _toLocal(DateTime? dateTime) {
+    return dateTime?.toLocal();
+  }
+
   // ==================== 工作板操作 ====================
 
   @override
@@ -110,7 +120,7 @@ class MySQLAdapter implements DatabaseAdapter {
         'name': row['name'],
         'color': row['color'],
         'sort_order': row['sort_order'],
-        'created_at': (row['created_at'] as DateTime).toIso8601String(),
+        'created_at': _toLocal(row['created_at'] as DateTime?)!.toIso8601String(),
       });
     }).toList();
   }
@@ -124,7 +134,7 @@ class MySQLAdapter implements DatabaseAdapter {
         board.name,
         board.color.value,
         board.sortOrder,
-        board.createdAt,
+        _toUtc(board.createdAt),
       ],
     );
     return result.insertId!;
@@ -177,14 +187,14 @@ class MySQLAdapter implements DatabaseAdapter {
         'is_completed': row['is_completed'],
         'sort_order': row['sort_order'],
         'deadline': row['deadline'] != null
-            ? (row['deadline'] as DateTime).toIso8601String()
+            ? _toLocal(row['deadline'] as DateTime?)!.toIso8601String()
             : null,
-        'created_at': (row['created_at'] as DateTime).toIso8601String(),
+        'created_at': _toLocal(row['created_at'] as DateTime?)!.toIso8601String(),
         'first_completed_at': row['first_completed_at'] != null
-            ? (row['first_completed_at'] as DateTime).toIso8601String()
+            ? _toLocal(row['first_completed_at'] as DateTime?)!.toIso8601String()
             : null,
         'completed_at': row['completed_at'] != null
-            ? (row['completed_at'] as DateTime).toIso8601String()
+            ? _toLocal(row['completed_at'] as DateTime?)!.toIso8601String()
             : null,
       });
     }).toList();
@@ -201,10 +211,10 @@ class MySQLAdapter implements DatabaseAdapter {
         task.title,
         task.isCompleted ? 1 : 0,
         task.sortOrder,
-        task.deadline,
-        task.createdAt,
-        task.firstCompletedAt,
-        task.completedAt,
+        _toUtc(task.deadline),
+        _toUtc(task.createdAt),
+        _toUtc(task.firstCompletedAt),
+        _toUtc(task.completedAt),
       ],
     );
     return result.insertId!;
@@ -222,9 +232,9 @@ class MySQLAdapter implements DatabaseAdapter {
         task.title,
         task.isCompleted ? 1 : 0,
         task.sortOrder,
-        task.deadline,
-        task.firstCompletedAt,
-        task.completedAt,
+        _toUtc(task.deadline),
+        _toUtc(task.firstCompletedAt),
+        _toUtc(task.completedAt),
         task.id,
       ],
     );
@@ -237,7 +247,7 @@ class MySQLAdapter implements DatabaseAdapter {
 
   @override
   Future<void> toggleTaskCompletion(Task task) async {
-    final now = DateTime.now();
+    final now = _toUtc(DateTime.now());
     final isCompleted = !task.isCompleted;
 
     await _conn.query(
@@ -265,9 +275,9 @@ class MySQLAdapter implements DatabaseAdapter {
           task.boardId,
           task.sortOrder,
           task.isCompleted ? 1 : 0,
-          task.deadline,
-          task.firstCompletedAt,
-          task.completedAt,
+          _toUtc(task.deadline),
+          _toUtc(task.firstCompletedAt),
+          _toUtc(task.completedAt),
           task.id,
         ],
       );
@@ -287,22 +297,22 @@ class MySQLAdapter implements DatabaseAdapter {
 
     if (createdAfter != null) {
       where += ' AND created_at >= ?';
-      whereArgs.add(createdAfter);
+      whereArgs.add(_toUtc(createdAfter));
     }
 
     if (createdBefore != null) {
       where += ' AND created_at <= ?';
-      whereArgs.add(createdBefore);
+      whereArgs.add(_toUtc(createdBefore));
     }
 
     if (completedAfter != null) {
       where += ' AND completed_at >= ?';
-      whereArgs.add(completedAfter);
+      whereArgs.add(_toUtc(completedAfter));
     }
 
     if (completedBefore != null) {
       where += ' AND completed_at <= ?';
-      whereArgs.add(completedBefore);
+      whereArgs.add(_toUtc(completedBefore));
     }
 
     if (boardIds != null && boardIds.isNotEmpty) {
@@ -323,14 +333,14 @@ class MySQLAdapter implements DatabaseAdapter {
         'is_completed': row['is_completed'],
         'sort_order': row['sort_order'],
         'deadline': row['deadline'] != null
-            ? (row['deadline'] as DateTime).toIso8601String()
+            ? _toLocal(row['deadline'] as DateTime?)!.toIso8601String()
             : null,
-        'created_at': (row['created_at'] as DateTime).toIso8601String(),
+        'created_at': _toLocal(row['created_at'] as DateTime?)!.toIso8601String(),
         'first_completed_at': row['first_completed_at'] != null
-            ? (row['first_completed_at'] as DateTime).toIso8601String()
+            ? _toLocal(row['first_completed_at'] as DateTime?)!.toIso8601String()
             : null,
         'completed_at': row['completed_at'] != null
-            ? (row['completed_at'] as DateTime).toIso8601String()
+            ? _toLocal(row['completed_at'] as DateTime?)!.toIso8601String()
             : null,
       });
     }).toList();
