@@ -158,6 +158,34 @@ class _HomePageState extends State<HomePage> {
             onReorder: (oldIndex, newIndex) {
               provider.reorderBoards(oldIndex, newIndex);
             },
+            proxyDecorator: (child, index, animation) {
+              return AnimatedBuilder(
+                animation: animation,
+                builder: (context, child) {
+                  return Material(
+                    elevation: 8,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: child,
+                      ),
+                    ),
+                  );
+                },
+                child: child,
+              );
+            },
             itemBuilder: (context, index) {
               final board = provider.boards[index];
               return Container(

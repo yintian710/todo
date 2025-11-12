@@ -45,14 +45,7 @@ class DraggableTaskItem extends StatelessWidget {
           ),
         ),
       ),
-      childWhenDragging: Opacity(
-        opacity: 0.3,
-        child: TaskItem(
-          task: task,
-          boardColor: boardColor,
-          boardId: boardId,
-        ),
-      ),
+      childWhenDragging: const SizedBox.shrink(),
       child: TaskItem(
         task: task,
         boardColor: boardColor,
