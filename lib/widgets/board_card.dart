@@ -514,6 +514,7 @@ class _BoardCardState extends State<BoardCard> {
                         // 任务列表
                         Expanded(
                           child: DragTarget<Task>(
+                            onWillAccept: (task) => task != null,
                             onAccept: (task) {
                               // 跨工作板拖拽
                               if (task.boardId != widget.board.id!) {
@@ -535,23 +536,21 @@ class _BoardCardState extends State<BoardCard> {
                                           ),
                                         ),
                                       )
-                                    : ReorderableListView.builder(
+                                    : ListView.builder(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
                                           vertical: 4,
                                         ),
                                         itemCount: tasks.length,
-                                        onReorder: (oldIndex, newIndex) {
-                                          provider.reorderTasks(
-                                              widget.board.id!, oldIndex, newIndex);
-                                        },
                                         itemBuilder: (context, index) {
                                           final task = tasks[index];
-                                          return DraggableTaskItem(
+                                          return _DraggableTaskWrapper(
                                             key: ValueKey(task.id),
                                             task: task,
                                             boardColor: widget.board.color,
                                             boardId: widget.board.id!,
+                                            index: index,
+                                            totalTasks: tasks.length,
                                           );
                                         },
                                       ),
@@ -568,6 +567,78 @@ class _BoardCardState extends State<BoardCard> {
           );
         },
       ),
+    );
+  }
+}
+
+// 可拖拽任务包装器，支持精确插入位置
+class _DraggableTaskWrapper extends StatelessWidget {
+  final Task task;
+  final Color boardColor;
+  final int boardId;
+  final int index;
+  final int totalTasks;
+
+  const _DraggableTaskWrapper({
+    Key? key,
+    required this.task,
+    required this.boardColor,
+    required this.boardId,
+    required this.index,
+    required this.totalTasks,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.read<TodoProvider>();
+
+    return DragTarget<Task>(
+      onWillAccept: (draggedTask) {
+        // 接受任何任务，包括同板和跨板
+        return draggedTask != null && draggedTask.id != task.id;
+      },
+      onAccept: (draggedTask) {
+        if (draggedTask.boardId == boardId) {
+          // 同板内拖拽 - 重新排序
+          final tasks = provider.getTasksForBoard(boardId);
+          final oldIndex = tasks.indexWhere((t) => t.id == draggedTask.id);
+          if (oldIndex != -1 && oldIndex != index) {
+            provider.reorderTasks(boardId, oldIndex, index);
+          }
+        } else {
+          // 跨板拖拽 - 移动到目标板
+          provider.moveTaskToBoard(draggedTask, boardId);
+          // 移动后，将任务重排到当前位置
+          Future.delayed(const Duration(milliseconds: 100), () {
+            final tasks = provider.getTasksForBoard(boardId);
+            final newIndex = tasks.indexWhere((t) => t.id == draggedTask.id);
+            if (newIndex != -1 && newIndex != index) {
+              provider.reorderTasks(boardId, newIndex, index);
+            }
+          });
+        }
+      },
+      builder: (context, candidateData, rejectedData) {
+        final bool isHovering = candidateData.isNotEmpty;
+
+        return Column(
+          children: [
+            // 拖拽时显示插入指示器
+            if (isHovering)
+              Container(
+                height: 2,
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                color: boardColor,
+              ),
+            // 实际的任务项
+            DraggableTaskItem(
+              task: task,
+              boardColor: boardColor,
+              boardId: boardId,
+            ),
+          ],
+        );
+      },
     );
   }
 }

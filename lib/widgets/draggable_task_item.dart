@@ -18,7 +18,7 @@ class DraggableTaskItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LongPressDraggable<Task>(
+    return Draggable<Task>(
       data: task,
       feedback: Material(
         elevation: 8,
@@ -53,6 +53,8 @@ class DraggableTaskItem extends StatelessWidget {
           boardId: boardId,
         ),
       ),
+      // 延迟一点开始拖拽，避免和点击冲突
+      delay: const Duration(milliseconds: 100),
       child: TaskItem(
         task: task,
         boardColor: boardColor,
