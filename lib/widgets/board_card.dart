@@ -531,21 +531,40 @@ class _DraggableTaskWrapper extends StatelessWidget {
         return draggedTask != null && draggedTask.id != task.id;
       },
       onAccept: (draggedTask) async {
+        final tasks = provider.getTasksForBoard(boardId);
+
         if (draggedTask.boardId == boardId) {
           // 同板内拖拽 - 重新排序
-          final tasks = provider.getTasksForBoard(boardId);
           final oldIndex = tasks.indexWhere((t) => t.id == draggedTask.id);
           if (oldIndex != -1 && oldIndex != index) {
-            provider.reorderTasks(boardId, oldIndex, index);
+            // 检查：如果拖拽的是未完成任务，目标位置是已完成任务
+            if (!draggedTask.isCompleted && task.isCompleted) {
+              // 找到最后一个未完成任务的索引
+              final lastIncompleteIndex = tasks.lastIndexWhere((t) => !t.isCompleted);
+              if (lastIncompleteIndex != -1 && lastIncompleteIndex != oldIndex) {
+                provider.reorderTasks(boardId, oldIndex, lastIncompleteIndex);
+              }
+            } else {
+              provider.reorderTasks(boardId, oldIndex, index);
+            }
           }
         } else {
           // 跨板拖拽 - 先移动再排序
           await provider.moveTaskToBoard(draggedTask, boardId);
           // 移动后立即重排到目标位置
-          final tasks = provider.getTasksForBoard(boardId);
-          final newIndex = tasks.indexWhere((t) => t.id == draggedTask.id);
+          final tasksAfterMove = provider.getTasksForBoard(boardId);
+          final newIndex = tasksAfterMove.indexWhere((t) => t.id == draggedTask.id);
           if (newIndex != -1 && newIndex != index) {
-            provider.reorderTasks(boardId, newIndex, index);
+            // 检查：如果拖拽的是未完成任务，目标位置是已完成任务
+            if (!draggedTask.isCompleted && task.isCompleted) {
+              // 找到最后一个未完成任务的索引
+              final lastIncompleteIndex = tasksAfterMove.lastIndexWhere((t) => !t.isCompleted);
+              if (lastIncompleteIndex != -1 && lastIncompleteIndex != newIndex) {
+                provider.reorderTasks(boardId, newIndex, lastIncompleteIndex);
+              }
+            } else {
+              provider.reorderTasks(boardId, newIndex, index);
+            }
           }
         }
       },
@@ -593,17 +612,40 @@ class _EmptyDragTarget extends StatelessWidget {
 
     return DragTarget<Task>(
       onWillAccept: (draggedTask) => draggedTask != null,
-      onAccept: (draggedTask) {
+      onAccept: (draggedTask) async {
+        final tasks = provider.getTasksForBoard(boardId);
+
         if (draggedTask.boardId == boardId) {
           // 同板内拖拽 - 移动到最后
-          final tasks = provider.getTasksForBoard(boardId);
           final oldIndex = tasks.indexWhere((t) => t.id == draggedTask.id);
           if (oldIndex != -1 && oldIndex != index) {
-            provider.reorderTasks(boardId, oldIndex, index);
+            // 检查：如果拖拽的是未完成任务，且列表中有已完成任务
+            if (!draggedTask.isCompleted && tasks.any((t) => t.isCompleted)) {
+              // 找到最后一个未完成任务的索引
+              final lastIncompleteIndex = tasks.lastIndexWhere((t) => !t.isCompleted);
+              if (lastIncompleteIndex != -1 && lastIncompleteIndex != oldIndex) {
+                provider.reorderTasks(boardId, oldIndex, lastIncompleteIndex);
+              }
+            } else {
+              provider.reorderTasks(boardId, oldIndex, index);
+            }
           }
         } else {
           // 跨板拖拽 - 移动到目标板最后
-          provider.moveTaskToBoard(draggedTask, boardId);
+          await provider.moveTaskToBoard(draggedTask, boardId);
+
+          // 如果拖拽的是未完成任务，检查目标板是否有已完成任务
+          if (!draggedTask.isCompleted) {
+            final tasksAfterMove = provider.getTasksForBoard(boardId);
+            if (tasksAfterMove.any((t) => t.isCompleted)) {
+              // 找到最后一个未完成任务的索引
+              final lastIncompleteIndex = tasksAfterMove.lastIndexWhere((t) => !t.isCompleted);
+              final newIndex = tasksAfterMove.indexWhere((t) => t.id == draggedTask.id);
+              if (lastIncompleteIndex != -1 && newIndex != -1 && lastIncompleteIndex != newIndex) {
+                provider.reorderTasks(boardId, newIndex, lastIncompleteIndex);
+              }
+            }
+          }
         }
       },
       builder: (context, candidateData, rejectedData) {
