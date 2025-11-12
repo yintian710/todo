@@ -19,7 +19,7 @@ class _ExportPageState extends State<ExportPage> {
   DateTime? _createdTo;
   DateTime? _completedFrom;
   DateTime? _completedTo;
-  int? _selectedBoardId;
+  final Set<int> _selectedBoardIds = {};
 
   List<Task> _filteredTasks = [];
   final Set<int> _selectedTaskIds = {};
@@ -71,8 +71,9 @@ class _ExportPageState extends State<ExportPage> {
           }
         }
 
-        // 工作板筛选
-        if (_selectedBoardId != null && task.boardId != _selectedBoardId) {
+        // 工作板筛选（如果有选中的工作板）
+        if (_selectedBoardIds.isNotEmpty &&
+            !_selectedBoardIds.contains(task.boardId)) {
           return false;
         }
 
@@ -260,30 +261,73 @@ class _ExportPageState extends State<ExportPage> {
                       ),
                     ],
                   ),
+                  const Text(
+                    '工作板',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
                   Consumer<TodoProvider>(
                     builder: (context, provider, child) {
-                      return DropdownButtonFormField<int?>(
-                        value: _selectedBoardId,
-                        decoration: const InputDecoration(
-                          labelText: '工作板',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: [
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text('全部'),
-                          ),
-                          ...provider.boards.map((board) {
-                            return DropdownMenuItem(
-                              value: board.id,
-                              child: Text(board.name),
+                      return SizedBox(
+                        height: 60,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: provider.boards.length,
+                          itemBuilder: (context, index) {
+                            final board = provider.boards[index];
+                            final isSelected =
+                                _selectedBoardIds.contains(board.id);
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (isSelected) {
+                                    _selectedBoardIds.remove(board.id);
+                                  } else {
+                                    _selectedBoardIds.add(board.id!);
+                                  }
+                                });
+                                _applyFilters();
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? board.color
+                                      : board.color.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: board.color,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      board.name,
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? Colors.white
+                                            : board.color,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    if (isSelected)
+                                      const Icon(
+                                        Icons.check,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                  ],
+                                ),
+                              ),
                             );
-                          }),
-                        ],
-                        onChanged: (value) {
-                          setState(() => _selectedBoardId = value);
-                          _applyFilters();
-                        },
+                          },
+                        ),
                       );
                     },
                   ),

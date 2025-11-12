@@ -31,22 +31,43 @@ class _TaskItemState extends State<TaskItem> {
   @override
   void initState() {
     super.initState();
-    _updateCountdown();
-    // 每秒刷新倒计时
-    _countdownTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) {
-        if (mounted) {
-          _updateCountdown();
-        }
-      },
-    );
+    _startTimer();
+  }
+
+  @override
+  void didUpdateWidget(TaskItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 如果任务状态或截止时间变化，重新启动定时器
+    if (oldWidget.task.isCompleted != widget.task.isCompleted ||
+        oldWidget.task.deadline != widget.task.deadline) {
+      _restartTimer();
+    }
   }
 
   @override
   void dispose() {
     _countdownTimer?.cancel();
     super.dispose();
+  }
+
+  void _startTimer() {
+    _updateCountdown();
+    // 只在有截止时间且未完成时启动定时器
+    if (widget.task.deadline != null && !widget.task.isCompleted) {
+      _countdownTimer = Timer.periodic(
+        const Duration(seconds: 1),
+        (_) {
+          if (mounted) {
+            _updateCountdown();
+          }
+        },
+      );
+    }
+  }
+
+  void _restartTimer() {
+    _countdownTimer?.cancel();
+    _startTimer();
   }
 
   void _updateCountdown() {
