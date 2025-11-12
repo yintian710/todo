@@ -131,6 +131,7 @@ class _HomePageState extends State<HomePage> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.all(16),
             itemCount: provider.boards.length,
+            buildDefaultDragHandles: false, // 禁用默认句柄，使用自定义拖拽区域
             onReorder: (oldIndex, newIndex) {
               provider.reorderBoards(oldIndex, newIndex);
             },
