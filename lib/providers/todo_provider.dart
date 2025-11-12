@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/board.dart';
@@ -11,6 +12,7 @@ class TodoProvider with ChangeNotifier {
   Map<int, List<Task>> _tasksByBoard = {};
   bool _isLoading = false;
   String? _error;
+  Timer? _syncTimer;
 
   List<Board> get boards => _boards;
   Map<int, List<Task>> get tasksByBoard => _tasksByBoard;
@@ -22,11 +24,33 @@ class TodoProvider with ChangeNotifier {
     return _tasksByBoard[boardId] ?? [];
   }
 
+  // 启动自动同步
+  void startAutoSync() {
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      loadData(silent: true);
+    });
+  }
+
+  // 停止自动同步
+  void stopAutoSync() {
+    _syncTimer?.cancel();
+    _syncTimer = null;
+  }
+
+  @override
+  void dispose() {
+    stopAutoSync();
+    super.dispose();
+  }
+
   // 加载所有数据
-  Future<void> loadData() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  Future<void> loadData({bool silent = false}) async {
+    if (!silent) {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+    }
 
     try {
       _boards = await _dbService.getAllBoards();
@@ -37,11 +61,15 @@ class TodoProvider with ChangeNotifier {
         _tasksByBoard[board.id!] = _sortTasks(tasks);
       }
 
-      _isLoading = false;
+      if (!silent) {
+        _isLoading = false;
+      }
       notifyListeners();
     } catch (e) {
       _error = e.toString();
-      _isLoading = false;
+      if (!silent) {
+        _isLoading = false;
+      }
       notifyListeners();
     }
   }

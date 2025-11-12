@@ -18,8 +18,16 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TodoProvider>().loadData();
+      final provider = context.read<TodoProvider>();
+      provider.loadData();
+      provider.startAutoSync();
     });
+  }
+
+  @override
+  void dispose() {
+    context.read<TodoProvider>().stopAutoSync();
+    super.dispose();
   }
 
   void _showAddBoardDialog() {
