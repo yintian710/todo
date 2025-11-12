@@ -13,7 +13,7 @@ class ConfigPage extends StatefulWidget {
 
 class _ConfigPageState extends State<ConfigPage> {
   final _formKey = GlobalKey<FormState>();
-  String? _databasePath;
+  final _databasePathController = TextEditingController();
   bool _isLoading = false;
   String? _error;
   bool _useLocalDatabase = true;
@@ -24,13 +24,17 @@ class _ConfigPageState extends State<ConfigPage> {
     _loadDefaultPath();
   }
 
+  @override
+  void dispose() {
+    _databasePathController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadDefaultPath() async {
     if (_useLocalDatabase) {
       final defaultPath = await DatabaseService.getDefaultDatabasePath();
       if (mounted) {
-        setState(() {
-          _databasePath = defaultPath;
-        });
+        _databasePathController.text = defaultPath;
       }
     }
   }
@@ -45,9 +49,7 @@ class _ConfigPageState extends State<ConfigPage> {
       );
 
       if (result != null) {
-        setState(() {
-          _databasePath = result;
-        });
+        _databasePathController.text = result;
       }
     } catch (e) {
       setState(() {
@@ -63,9 +65,7 @@ class _ConfigPageState extends State<ConfigPage> {
       );
 
       if (result != null) {
-        setState(() {
-          _databasePath = '$result${Platform.pathSeparator}todo.db';
-        });
+        _databasePathController.text = '$result${Platform.pathSeparator}todo.db';
       }
     } catch (e) {
       setState(() {
@@ -85,9 +85,11 @@ class _ConfigPageState extends State<ConfigPage> {
     });
 
     try {
+      final databasePath = _databasePathController.text;
+
       // 测试数据库连接
       final dbService = DatabaseService.instance;
-      final success = await dbService.testConnection(_databasePath!);
+      final success = await dbService.testConnection(databasePath);
 
       if (!success) {
         setState(() {
@@ -99,8 +101,8 @@ class _ConfigPageState extends State<ConfigPage> {
 
       // 保存配置
       final configService = await ConfigService.getInstance();
-      await configService.setDatabasePath(_databasePath!);
-      await DatabaseService.setDatabasePath(_databasePath!);
+      await configService.setDatabasePath(databasePath);
+      await DatabaseService.setDatabasePath(databasePath);
 
       if (mounted) {
         // 跳转到主页
@@ -158,13 +160,17 @@ class _ConfigPageState extends State<ConfigPage> {
                   onChanged: (value) {
                     setState(() {
                       _useLocalDatabase = value;
+                      _databasePathController.clear(); // 切换时清空路径
                     });
+                    if (value) {
+                      _loadDefaultPath(); // 切换到本地数据库时加载默认路径
+                    }
                   },
                 ),
                 const SizedBox(height: 16),
                 if (_useLocalDatabase) ...[
                   TextFormField(
-                    initialValue: _databasePath,
+                    controller: _databasePathController,
                     decoration: const InputDecoration(
                       labelText: '数据库路径',
                       hintText: '选择数据库文件保存位置',
@@ -177,9 +183,6 @@ class _ConfigPageState extends State<ConfigPage> {
                         return '请选择数据库路径';
                       }
                       return null;
-                    },
-                    onChanged: (value) {
-                      _databasePath = value;
                     },
                   ),
                   const SizedBox(height: 16),
@@ -201,6 +204,23 @@ class _ConfigPageState extends State<ConfigPage> {
                         ),
                       ),
                     ],
+                  ),
+                ] else ...[
+                  TextFormField(
+                    controller: _databasePathController,
+                    decoration: const InputDecoration(
+                      labelText: '数据库连接 URL',
+                      hintText: 'mysql://user:password@host:port/database',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.link),
+                      helperText: '支持 MySQL 等远程数据库连接',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '请输入数据库连接 URL';
+                      }
+                      return null;
+                    },
                   ),
                 ],
                 const SizedBox(height: 24),
