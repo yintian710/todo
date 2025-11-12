@@ -331,7 +331,7 @@ class _TaskItemState extends State<TaskItem> {
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: isOverdue ? Colors.red.shade900 : Colors.orange.shade900,
-                      fontFeatureSettings: const [
+                      fontFeatures: const [
                         FontFeature.tabularFigures(),
                       ],
                     ),
