@@ -47,6 +47,7 @@ class MySQLAdapter implements DatabaseAdapter {
       await conn.close();
       return true;
     } catch (e) {
+      print('[MySQL] 测试连接失败: $e');
       return false;
     }
   }
@@ -116,67 +117,100 @@ class MySQLAdapter implements DatabaseAdapter {
     return dateTime?.toLocal();
   }
 
+  /// 将 MySQL Blob 或其他类型安全转换为 String
+  String _toString(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    if (value is Blob) return String.fromCharCodes(value.toBytes());
+    return value.toString();
+  }
+
   // ==================== 工作板操作 ====================
 
   @override
   Future<List<Board>> getAllBoards() async {
-    final results = await _conn.query(
-      'SELECT * FROM boards ORDER BY sort_order ASC',
-    );
+    try {
+      final results = await _conn.query(
+        'SELECT * FROM boards ORDER BY sort_order ASC',
+      );
 
-    return results.map((row) {
-      return Board.fromMap({
-        'id': row['id'],
-        'name': row['name'],
-        'color': row['color'],
-        'sort_order': row['sort_order'],
-        'created_at': _toLocal(row['created_at'] as DateTime?)!.toIso8601String(),
-      });
-    }).toList();
+      return results.map((row) {
+        return Board.fromMap({
+          'id': row['id'],
+          'name': _toString(row['name']),
+          'color': row['color'],
+          'sort_order': row['sort_order'],
+          'created_at': _toLocal(row['created_at'] as DateTime?)!.toIso8601String(),
+        });
+      }).toList();
+    } catch (e) {
+      print('[MySQL] getAllBoards 失败: $e');
+      rethrow;
+    }
   }
 
   @override
   Future<int> createBoard(Board board) async {
-    final result = await _conn.query(
-      '''INSERT INTO boards (name, color, sort_order, created_at)
-         VALUES (?, ?, ?, ?)''',
-      [
-        board.name,
-        board.color.value,
-        board.sortOrder,
-        _toUtc(board.createdAt),
-      ],
-    );
-    return result.insertId!;
+    try {
+      final result = await _conn.query(
+        '''INSERT INTO boards (name, color, sort_order, created_at)
+           VALUES (?, ?, ?, ?)''',
+        [
+          board.name,
+          board.color.value,
+          board.sortOrder,
+          _toUtc(board.createdAt),
+        ],
+      );
+      return result.insertId!;
+    } catch (e) {
+      print('[MySQL] createBoard 失败: $e');
+      rethrow;
+    }
   }
 
   @override
   Future<void> updateBoard(Board board) async {
-    await _conn.query(
-      '''UPDATE boards
-         SET name = ?, color = ?, sort_order = ?
-         WHERE id = ?''',
-      [
-        board.name,
-        board.color.value,
-        board.sortOrder,
-        board.id,
-      ],
-    );
+    try {
+      await _conn.query(
+        '''UPDATE boards
+           SET name = ?, color = ?, sort_order = ?
+           WHERE id = ?''',
+        [
+          board.name,
+          board.color.value,
+          board.sortOrder,
+          board.id,
+        ],
+      );
+    } catch (e) {
+      print('[MySQL] updateBoard 失败: $e');
+      rethrow;
+    }
   }
 
   @override
   Future<void> deleteBoard(int boardId) async {
-    await _conn.query('DELETE FROM boards WHERE id = ?', [boardId]);
+    try {
+      await _conn.query('DELETE FROM boards WHERE id = ?', [boardId]);
+    } catch (e) {
+      print('[MySQL] deleteBoard 失败: $e');
+      rethrow;
+    }
   }
 
   @override
   Future<void> updateBoardsOrder(List<Board> boards) async {
-    for (final board in boards) {
-      await _conn.query(
-        'UPDATE boards SET sort_order = ? WHERE id = ?',
-        [board.sortOrder, board.id],
-      );
+    try {
+      for (final board in boards) {
+        await _conn.query(
+          'UPDATE boards SET sort_order = ? WHERE id = ?',
+          [board.sortOrder, board.id],
+        );
+      }
+    } catch (e) {
+      print('[MySQL] updateBoardsOrder 失败: $e');
+      rethrow;
     }
   }
 
@@ -184,113 +218,143 @@ class MySQLAdapter implements DatabaseAdapter {
 
   @override
   Future<List<Task>> getTasksByBoard(int boardId) async {
-    final results = await _conn.query(
-      'SELECT * FROM tasks WHERE board_id = ? ORDER BY sort_order ASC',
-      [boardId],
-    );
+    try {
+      final results = await _conn.query(
+        'SELECT * FROM tasks WHERE board_id = ? ORDER BY sort_order ASC',
+        [boardId],
+      );
 
-    return results.map((row) {
-      return Task.fromMap({
-        'id': row['id'],
-        'board_id': row['board_id'],
-        'title': row['title'],
-        'is_completed': row['is_completed'],
-        'sort_order': row['sort_order'],
-        'deadline': row['deadline'] != null
-            ? _toLocal(row['deadline'] as DateTime?)!.toIso8601String()
-            : null,
-        'created_at': _toLocal(row['created_at'] as DateTime?)!.toIso8601String(),
-        'first_completed_at': row['first_completed_at'] != null
-            ? _toLocal(row['first_completed_at'] as DateTime?)!.toIso8601String()
-            : null,
-        'completed_at': row['completed_at'] != null
-            ? _toLocal(row['completed_at'] as DateTime?)!.toIso8601String()
-            : null,
-      });
-    }).toList();
+      return results.map((row) {
+        return Task.fromMap({
+          'id': row['id'],
+          'board_id': row['board_id'],
+          'title': _toString(row['title']),
+          'is_completed': row['is_completed'],
+          'sort_order': row['sort_order'],
+          'deadline': row['deadline'] != null
+              ? _toLocal(row['deadline'] as DateTime?)!.toIso8601String()
+              : null,
+          'created_at': _toLocal(row['created_at'] as DateTime?)!.toIso8601String(),
+          'first_completed_at': row['first_completed_at'] != null
+              ? _toLocal(row['first_completed_at'] as DateTime?)!.toIso8601String()
+              : null,
+          'completed_at': row['completed_at'] != null
+              ? _toLocal(row['completed_at'] as DateTime?)!.toIso8601String()
+              : null,
+        });
+      }).toList();
+    } catch (e) {
+      print('[MySQL] getTasksByBoard 失败: $e');
+      rethrow;
+    }
   }
 
   @override
   Future<int> createTask(Task task) async {
-    final result = await _conn.query(
-      '''INSERT INTO tasks (board_id, title, is_completed, sort_order,
-         deadline, created_at, first_completed_at, completed_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-      [
-        task.boardId,
-        task.title,
-        task.isCompleted ? 1 : 0,
-        task.sortOrder,
-        _toUtc(task.deadline),
-        _toUtc(task.createdAt),
-        _toUtc(task.firstCompletedAt),
-        _toUtc(task.completedAt),
-      ],
-    );
-    return result.insertId!;
+    try {
+      final result = await _conn.query(
+        '''INSERT INTO tasks (board_id, title, is_completed, sort_order,
+           deadline, created_at, first_completed_at, completed_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+        [
+          task.boardId,
+          task.title,
+          task.isCompleted ? 1 : 0,
+          task.sortOrder,
+          _toUtc(task.deadline),
+          _toUtc(task.createdAt),
+          _toUtc(task.firstCompletedAt),
+          _toUtc(task.completedAt),
+        ],
+      );
+      return result.insertId!;
+    } catch (e) {
+      print('[MySQL] createTask 失败: $e');
+      rethrow;
+    }
   }
 
   @override
   Future<void> updateTask(Task task) async {
-    await _conn.query(
-      '''UPDATE tasks
-         SET board_id = ?, title = ?, is_completed = ?, sort_order = ?,
-             deadline = ?, first_completed_at = ?, completed_at = ?
-         WHERE id = ?''',
-      [
-        task.boardId,
-        task.title,
-        task.isCompleted ? 1 : 0,
-        task.sortOrder,
-        _toUtc(task.deadline),
-        _toUtc(task.firstCompletedAt),
-        _toUtc(task.completedAt),
-        task.id,
-      ],
-    );
-  }
-
-  @override
-  Future<void> deleteTask(int taskId) async {
-    await _conn.query('DELETE FROM tasks WHERE id = ?', [taskId]);
-  }
-
-  @override
-  Future<void> toggleTaskCompletion(Task task) async {
-    final now = _toUtc(DateTime.now());
-    final isCompleted = !task.isCompleted;
-
-    await _conn.query(
-      '''UPDATE tasks
-         SET is_completed = ?, completed_at = ?, first_completed_at = COALESCE(first_completed_at, ?)
-         WHERE id = ?''',
-      [
-        isCompleted ? 1 : 0,
-        isCompleted ? now : null,
-        isCompleted ? now : null,
-        task.id,
-      ],
-    );
-  }
-
-  @override
-  Future<void> updateTasksOrder(List<Task> tasks) async {
-    for (final task in tasks) {
+    try {
       await _conn.query(
         '''UPDATE tasks
-           SET board_id = ?, sort_order = ?, is_completed = ?,
+           SET board_id = ?, title = ?, is_completed = ?, sort_order = ?,
                deadline = ?, first_completed_at = ?, completed_at = ?
            WHERE id = ?''',
         [
           task.boardId,
-          task.sortOrder,
+          task.title,
           task.isCompleted ? 1 : 0,
+          task.sortOrder,
           _toUtc(task.deadline),
           _toUtc(task.firstCompletedAt),
           _toUtc(task.completedAt),
           task.id,
         ],
       );
+    } catch (e) {
+      print('[MySQL] updateTask 失败: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> deleteTask(int taskId) async {
+    try {
+      await _conn.query('DELETE FROM tasks WHERE id = ?', [taskId]);
+    } catch (e) {
+      print('[MySQL] deleteTask 失败: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> toggleTaskCompletion(Task task) async {
+    try {
+      final now = _toUtc(DateTime.now());
+      final isCompleted = !task.isCompleted;
+
+      await _conn.query(
+        '''UPDATE tasks
+           SET is_completed = ?, completed_at = ?, first_completed_at = COALESCE(first_completed_at, ?)
+           WHERE id = ?''',
+        [
+          isCompleted ? 1 : 0,
+          isCompleted ? now : null,
+          isCompleted ? now : null,
+          task.id,
+        ],
+      );
+    } catch (e) {
+      print('[MySQL] toggleTaskCompletion 失败: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> updateTasksOrder(List<Task> tasks) async {
+    try {
+      for (final task in tasks) {
+        await _conn.query(
+          '''UPDATE tasks
+             SET board_id = ?, sort_order = ?, is_completed = ?,
+                 deadline = ?, first_completed_at = ?, completed_at = ?
+             WHERE id = ?''',
+          [
+            task.boardId,
+            task.sortOrder,
+            task.isCompleted ? 1 : 0,
+            _toUtc(task.deadline),
+            _toUtc(task.firstCompletedAt),
+            _toUtc(task.completedAt),
+            task.id,
+          ],
+        );
+      }
+    } catch (e) {
+      print('[MySQL] updateTasksOrder 失败: $e');
+      rethrow;
     }
   }
 
@@ -302,57 +366,62 @@ class MySQLAdapter implements DatabaseAdapter {
     DateTime? completedBefore,
     List<int>? boardIds,
   }) async {
-    String where = '1=1';
-    List<dynamic> whereArgs = [];
+    try {
+      String where = '1=1';
+      List<dynamic> whereArgs = [];
 
-    if (createdAfter != null) {
-      where += ' AND created_at >= ?';
-      whereArgs.add(_toUtc(createdAfter));
+      if (createdAfter != null) {
+        where += ' AND created_at >= ?';
+        whereArgs.add(_toUtc(createdAfter));
+      }
+
+      if (createdBefore != null) {
+        where += ' AND created_at <= ?';
+        whereArgs.add(_toUtc(createdBefore));
+      }
+
+      if (completedAfter != null) {
+        where += ' AND completed_at >= ?';
+        whereArgs.add(_toUtc(completedAfter));
+      }
+
+      if (completedBefore != null) {
+        where += ' AND completed_at <= ?';
+        whereArgs.add(_toUtc(completedBefore));
+      }
+
+      if (boardIds != null && boardIds.isNotEmpty) {
+        where += ' AND board_id IN (${boardIds.map((_) => '?').join(',')})';
+        whereArgs.addAll(boardIds);
+      }
+
+      final results = await _conn.query(
+        'SELECT * FROM tasks WHERE $where ORDER BY created_at DESC',
+        whereArgs,
+      );
+
+      return results.map((row) {
+        return Task.fromMap({
+          'id': row['id'],
+          'board_id': row['board_id'],
+          'title': _toString(row['title']),
+          'is_completed': row['is_completed'],
+          'sort_order': row['sort_order'],
+          'deadline': row['deadline'] != null
+              ? _toLocal(row['deadline'] as DateTime?)!.toIso8601String()
+              : null,
+          'created_at': _toLocal(row['created_at'] as DateTime?)!.toIso8601String(),
+          'first_completed_at': row['first_completed_at'] != null
+              ? _toLocal(row['first_completed_at'] as DateTime?)!.toIso8601String()
+              : null,
+          'completed_at': row['completed_at'] != null
+              ? _toLocal(row['completed_at'] as DateTime?)!.toIso8601String()
+              : null,
+        });
+      }).toList();
+    } catch (e) {
+      print('[MySQL] filterTasks 失败: $e');
+      rethrow;
     }
-
-    if (createdBefore != null) {
-      where += ' AND created_at <= ?';
-      whereArgs.add(_toUtc(createdBefore));
-    }
-
-    if (completedAfter != null) {
-      where += ' AND completed_at >= ?';
-      whereArgs.add(_toUtc(completedAfter));
-    }
-
-    if (completedBefore != null) {
-      where += ' AND completed_at <= ?';
-      whereArgs.add(_toUtc(completedBefore));
-    }
-
-    if (boardIds != null && boardIds.isNotEmpty) {
-      where += ' AND board_id IN (${boardIds.map((_) => '?').join(',')})';
-      whereArgs.addAll(boardIds);
-    }
-
-    final results = await _conn.query(
-      'SELECT * FROM tasks WHERE $where ORDER BY created_at DESC',
-      whereArgs,
-    );
-
-    return results.map((row) {
-      return Task.fromMap({
-        'id': row['id'],
-        'board_id': row['board_id'],
-        'title': row['title'],
-        'is_completed': row['is_completed'],
-        'sort_order': row['sort_order'],
-        'deadline': row['deadline'] != null
-            ? _toLocal(row['deadline'] as DateTime?)!.toIso8601String()
-            : null,
-        'created_at': _toLocal(row['created_at'] as DateTime?)!.toIso8601String(),
-        'first_completed_at': row['first_completed_at'] != null
-            ? _toLocal(row['first_completed_at'] as DateTime?)!.toIso8601String()
-            : null,
-        'completed_at': row['completed_at'] != null
-            ? _toLocal(row['completed_at'] as DateTime?)!.toIso8601String()
-            : null,
-      });
-    }).toList();
   }
 }
