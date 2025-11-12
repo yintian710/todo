@@ -63,12 +63,22 @@ class MySQLAdapter implements DatabaseAdapter {
       CREATE TABLE IF NOT EXISTS boards (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        color INT NOT NULL,
+        color BIGINT UNSIGNED NOT NULL,
         sort_order INT NOT NULL,
         created_at DATETIME NOT NULL,
         INDEX idx_sort_order (sort_order)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     ''');
+
+    // 检查并修复已有表的 color 字段类型
+    try {
+      await _conn.query('''
+        ALTER TABLE boards
+        MODIFY COLUMN color BIGINT UNSIGNED NOT NULL
+      ''');
+    } catch (e) {
+      // 如果修改失败（可能是已经是正确类型），忽略错误
+    }
 
     // 创建任务表
     await _conn.query('''
