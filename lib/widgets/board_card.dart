@@ -464,8 +464,18 @@ class _BoardCardState extends State<BoardCard> {
                                           horizontal: 8,
                                           vertical: 4,
                                         ),
-                                        itemCount: tasks.length,
+                                        itemCount: tasks.length + 1, // +1 为拖拽到最后留位置
                                         itemBuilder: (context, index) {
+                                          // 最后一个位置是拖拽目标区域
+                                          if (index == tasks.length) {
+                                            return _EmptyDragTarget(
+                                              key: const ValueKey('empty-target'),
+                                              boardColor: widget.board.color,
+                                              boardId: widget.board.id!,
+                                              index: index,
+                                            );
+                                          }
+
                                           final task = tasks[index];
                                           return _DraggableTaskWrapper(
                                             key: ValueKey(task.id),
@@ -520,7 +530,7 @@ class _DraggableTaskWrapper extends StatelessWidget {
         // 接受任何任务，包括同板和跨板
         return draggedTask != null && draggedTask.id != task.id;
       },
-      onAccept: (draggedTask) {
+      onAccept: (draggedTask) async {
         if (draggedTask.boardId == boardId) {
           // 同板内拖拽 - 重新排序
           final tasks = provider.getTasksForBoard(boardId);
@@ -529,16 +539,14 @@ class _DraggableTaskWrapper extends StatelessWidget {
             provider.reorderTasks(boardId, oldIndex, index);
           }
         } else {
-          // 跨板拖拽 - 移动到目标板
-          provider.moveTaskToBoard(draggedTask, boardId);
-          // 移动后，将任务重排到当前位置
-          Future.delayed(const Duration(milliseconds: 100), () {
-            final tasks = provider.getTasksForBoard(boardId);
-            final newIndex = tasks.indexWhere((t) => t.id == draggedTask.id);
-            if (newIndex != -1 && newIndex != index) {
-              provider.reorderTasks(boardId, newIndex, index);
-            }
-          });
+          // 跨板拖拽 - 先移动再排序
+          await provider.moveTaskToBoard(draggedTask, boardId);
+          // 移动后立即重排到目标位置
+          final tasks = provider.getTasksForBoard(boardId);
+          final newIndex = tasks.indexWhere((t) => t.id == draggedTask.id);
+          if (newIndex != -1 && newIndex != index) {
+            provider.reorderTasks(boardId, newIndex, index);
+          }
         }
       },
       builder: (context, candidateData, rejectedData) {
@@ -560,6 +568,68 @@ class _DraggableTaskWrapper extends StatelessWidget {
               boardId: boardId,
             ),
           ],
+        );
+      },
+    );
+  }
+}
+
+// 空的拖拽目标，用于拖拽到列表末尾
+class _EmptyDragTarget extends StatelessWidget {
+  final Color boardColor;
+  final int boardId;
+  final int index;
+
+  const _EmptyDragTarget({
+    Key? key,
+    required this.boardColor,
+    required this.boardId,
+    required this.index,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.read<TodoProvider>();
+
+    return DragTarget<Task>(
+      onWillAccept: (draggedTask) => draggedTask != null,
+      onAccept: (draggedTask) {
+        if (draggedTask.boardId == boardId) {
+          // 同板内拖拽 - 移动到最后
+          final tasks = provider.getTasksForBoard(boardId);
+          final oldIndex = tasks.indexWhere((t) => t.id == draggedTask.id);
+          if (oldIndex != -1 && oldIndex != index) {
+            provider.reorderTasks(boardId, oldIndex, index);
+          }
+        } else {
+          // 跨板拖拽 - 移动到目标板最后
+          provider.moveTaskToBoard(draggedTask, boardId);
+        }
+      },
+      builder: (context, candidateData, rejectedData) {
+        final bool isHovering = candidateData.isNotEmpty;
+
+        return Container(
+          height: isHovering ? 60 : 20,
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          decoration: isHovering
+              ? BoxDecoration(
+                  border: Border.all(color: boardColor, width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                  color: boardColor.withOpacity(0.1),
+                )
+              : null,
+          child: isHovering
+              ? Center(
+                  child: Text(
+                    '拖放到此处',
+                    style: TextStyle(
+                      color: boardColor,
+                      fontSize: 12,
+                    ),
+                  ),
+                )
+              : null,
         );
       },
     );
