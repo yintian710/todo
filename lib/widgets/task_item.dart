@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../models/task.dart';
 import '../providers/todo_provider.dart';
 import '../widgets/task_detail_dialog.dart';
@@ -10,12 +9,14 @@ import '../widgets/set_deadline_dialog.dart';
 class TaskItem extends StatefulWidget {
   final Task task;
   final Color boardColor;
+  final int boardId;
   final bool readOnly;
 
   const TaskItem({
     Key? key,
     required this.task,
     required this.boardColor,
+    required this.boardId,
     this.readOnly = false,
   }) : super(key: key);
 
@@ -31,12 +32,15 @@ class _TaskItemState extends State<TaskItem> {
   void initState() {
     super.initState();
     _updateCountdown();
-    if (widget.task.deadline != null && !widget.task.isCompleted) {
-      _countdownTimer = Timer.periodic(
-        const Duration(seconds: 1),
-        (_) => _updateCountdown(),
-      );
-    }
+    // 每秒刷新倒计时
+    _countdownTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) {
+        if (mounted) {
+          _updateCountdown();
+        }
+      },
+    );
   }
 
   @override
@@ -47,9 +51,11 @@ class _TaskItemState extends State<TaskItem> {
 
   void _updateCountdown() {
     if (widget.task.deadline == null || widget.task.isCompleted) {
-      setState(() {
-        _countdownText = '';
-      });
+      if (_countdownText.isNotEmpty) {
+        setState(() {
+          _countdownText = '';
+        });
+      }
       return;
     }
 
@@ -57,46 +63,24 @@ class _TaskItemState extends State<TaskItem> {
     final deadline = widget.task.deadline!;
     final difference = deadline.difference(now);
 
+    String newText;
     if (difference.isNegative) {
+      // 已超时 - 显示红色
       final overdue = now.difference(deadline);
-      if (overdue.inDays > 0) {
-        setState(() {
-          _countdownText = '已超时 ${overdue.inDays}天';
-        });
-      } else if (overdue.inHours > 0) {
-        setState(() {
-          _countdownText = '已超时 ${overdue.inHours}小时';
-        });
-      } else if (overdue.inMinutes > 0) {
-        setState(() {
-          _countdownText = '已超时 ${overdue.inMinutes}分钟';
-        });
-      } else {
-        setState(() {
-          _countdownText = '已超时';
-        });
-      }
+      final minutes = overdue.inMinutes;
+      final seconds = overdue.inSeconds % 60;
+      newText = '-${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     } else {
-      if (difference.inDays > 0) {
-        setState(() {
-          _countdownText =
-              '${difference.inDays}天 ${difference.inHours % 24}小时';
-        });
-      } else if (difference.inHours > 0) {
-        setState(() {
-          _countdownText =
-              '${difference.inHours}小时 ${difference.inMinutes % 60}分钟';
-        });
-      } else if (difference.inMinutes > 0) {
-        setState(() {
-          _countdownText =
-              '${difference.inMinutes}分钟 ${difference.inSeconds % 60}秒';
-        });
-      } else {
-        setState(() {
-          _countdownText = '${difference.inSeconds}秒';
-        });
-      }
+      // 未超时 - 显示剩余时间
+      final minutes = difference.inMinutes;
+      final seconds = difference.inSeconds % 60;
+      newText = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
+
+    if (_countdownText != newText) {
+      setState(() {
+        _countdownText = newText;
+      });
     }
   }
 
@@ -231,56 +215,113 @@ class _TaskItemState extends State<TaskItem> {
         _showContextMenu(context, position);
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
           color: widget.task.isCompleted
-              ? Colors.grey.shade200
+              ? Colors.grey.shade100
               : (isOverdue ? Colors.red.shade50 : Colors.white),
-          border: Border(
-            left: BorderSide(
-              color: taskColor,
-              width: 4,
-            ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: taskColor.withOpacity(0.3),
+            width: 1,
           ),
-          borderRadius: BorderRadius.circular(4),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
-        child: ListTile(
-          leading: Checkbox(
-            value: widget.task.isCompleted,
-            onChanged: widget.readOnly
-                ? null
-                : (value) {
-                    context
-                        .read<TodoProvider>()
-                        .toggleTaskCompletion(widget.task);
-                  },
-            activeColor: taskColor,
-          ),
-          title: Text(
-            widget.task.title,
-            style: TextStyle(
-              decoration: widget.task.isCompleted
-                  ? TextDecoration.lineThrough
-                  : null,
-              color: widget.task.isCompleted ? Colors.grey : null,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () {
+              if (!widget.readOnly) {
+                context
+                    .read<TodoProvider>()
+                    .toggleTaskCompletion(widget.task);
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Checkbox
+                  Container(
+                    width: 20,
+                    height: 20,
+                    margin: const EdgeInsets.only(top: 2, right: 12),
+                    decoration: BoxDecoration(
+                      color: widget.task.isCompleted
+                          ? taskColor
+                          : Colors.transparent,
+                      border: Border.all(
+                        color: taskColor,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: widget.task.isCompleted
+                        ? const Icon(
+                            Icons.check,
+                            size: 14,
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
+
+                  // 任务内容
+                  Expanded(
+                    child: Text(
+                      widget.task.title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        decoration: widget.task.isCompleted
+                            ? TextDecoration.lineThrough
+                            : null,
+                        color: widget.task.isCompleted
+                            ? Colors.grey.shade600
+                            : Colors.black87,
+                      ),
+                    ),
+                  ),
+
+                  // 倒计时显示
+                  if (_countdownText.isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.only(left: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isOverdue
+                            ? Colors.red.shade100
+                            : Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        _countdownText,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isOverdue ? Colors.red.shade900 : Colors.orange.shade900,
+                          fontFeatureSettings: const [
+                            FontFeature.tabularFigures(),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
-          subtitle: _countdownText.isNotEmpty
-              ? Text(
-                  _countdownText,
-                  style: TextStyle(
-                    color: isOverdue ? Colors.red : Colors.orange,
-                    fontWeight: FontWeight.bold,
-                  ),
-                )
-              : null,
-          trailing: widget.task.deadline != null
-              ? Icon(
-                  Icons.access_time,
-                  color: isOverdue ? Colors.red : Colors.orange,
-                  size: 20,
-                )
-              : null,
         ),
       ),
     );

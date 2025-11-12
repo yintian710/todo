@@ -126,17 +126,21 @@ class _HomePageState extends State<HomePage> {
             );
           }
 
-          return ReorderableListView.builder(
+          // 横向排列工作板
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.all(16),
             itemCount: provider.boards.length,
-            onReorder: (oldIndex, newIndex) {
-              provider.reorderBoards(oldIndex, newIndex);
-            },
             itemBuilder: (context, index) {
               final board = provider.boards[index];
-              return BoardCard(
-                key: ValueKey(board.id),
-                board: board,
+              return Container(
+                width: 380,
+                margin: const EdgeInsets.only(right: 16),
+                child: BoardCard(
+                  key: ValueKey(board.id),
+                  board: board,
+                  index: index,
+                ),
               );
             },
           );

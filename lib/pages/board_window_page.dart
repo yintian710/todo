@@ -54,6 +54,7 @@ class _BoardWindowPageState extends State<BoardWindowPage> {
                 key: ValueKey(task.id),
                 task: task,
                 boardColor: widget.board.color,
+                boardId: widget.board.id!,
                 readOnly: true, // 单独窗口只能勾选完成
               );
             },

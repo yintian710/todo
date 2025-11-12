@@ -25,10 +25,14 @@ class _ConfigPageState extends State<ConfigPage> {
   }
 
   Future<void> _loadDefaultPath() async {
-    final defaultPath = await DatabaseService.getDefaultDatabasePath();
-    setState(() {
-      _databasePath = defaultPath;
-    });
+    if (_useLocalDatabase) {
+      final defaultPath = await DatabaseService.getDefaultDatabasePath();
+      if (mounted) {
+        setState(() {
+          _databasePath = defaultPath;
+        });
+      }
+    }
   }
 
   Future<void> _selectDatabaseFile() async {
