@@ -4,8 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../models/board.dart';
+import '../models/task.dart';
 import '../providers/todo_provider.dart';
-import '../widgets/task_item.dart';
+import '../widgets/draggable_task_item.dart';
 import '../pages/board_window_page.dart';
 
 class BoardCard extends StatefulWidget {
@@ -170,33 +171,41 @@ class _BoardCardState extends State<BoardCard> {
   }
 
   void _cancelAddingTask() {
-    setState(() {
-      _isAddingTask = false;
-      _taskTitleController.clear();
-    });
+    if (mounted) {
+      setState(() {
+        _isAddingTask = false;
+        _taskTitleController.clear();
+      });
+    }
   }
 
   Future<void> _submitTask() async {
     final title = _taskTitleController.text.trim();
-    if (title.isEmpty) return;
+    if (title.isEmpty) {
+      _cancelAddingTask();
+      return;
+    }
 
     final provider = context.read<TodoProvider>();
     await provider.createTask(widget.board.id!, title);
 
-    setState(() {
-      _taskTitleController.clear();
-      _isAddingTask = false;
-    });
+    if (mounted) {
+      setState(() {
+        _taskTitleController.clear();
+        _isAddingTask = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Focus(
       onKey: (node, event) {
-        // Ctrl+Enter 快捷键
+        // Ctrl+Enter 快捷键启动添加任务
         if (event is RawKeyDownEvent &&
             event.isControlPressed &&
-            event.logicalKey == LogicalKeyboardKey.enter) {
+            event.logicalKey == LogicalKeyboardKey.enter &&
+            !_isAddingTask) {
           _startAddingTask();
           return KeyEventResult.handled;
         }
@@ -365,17 +374,33 @@ class _BoardCardState extends State<BoardCard> {
                                 ),
                               ],
                             ),
-                            child: TextField(
-                              controller: _taskTitleController,
-                              focusNode: _focusNode,
-                              maxLines: null,
-                              decoration: const InputDecoration(
-                                hintText: '输入任务内容，回车确认，Esc取消',
-                                border: InputBorder.none,
-                                isDense: true,
+                            child: RawKeyboardListener(
+                              focusNode: FocusNode(),
+                              onKey: (RawKeyEvent event) {
+                                if (event is RawKeyDownEvent) {
+                                  // Esc 取消
+                                  if (event.logicalKey == LogicalKeyboardKey.escape) {
+                                    _cancelAddingTask();
+                                  }
+                                  // Ctrl+Enter 换行（TextField 默认处理）
+                                  // 普通 Enter 提交
+                                  else if (event.logicalKey == LogicalKeyboardKey.enter &&
+                                      !event.isControlPressed) {
+                                    _submitTask();
+                                  }
+                                }
+                              },
+                              child: TextField(
+                                controller: _taskTitleController,
+                                focusNode: _focusNode,
+                                maxLines: null,
+                                textInputAction: TextInputAction.newline,
+                                decoration: const InputDecoration(
+                                  hintText: '输入任务内容，回车确认，Ctrl+Enter换行，Esc取消',
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                ),
                               ),
-                              onSubmitted: (_) => _submitTask(),
-                              onEditingComplete: _submitTask,
                             ),
                           )
                         else
@@ -417,32 +442,51 @@ class _BoardCardState extends State<BoardCard> {
 
                         // 任务列表
                         Expanded(
-                          child: tasks.isEmpty
-                              ? Center(
-                                  child: Text(
-                                    '还没有任务',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade400,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                )
-                              : ListView.builder(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  itemCount: tasks.length,
-                                  itemBuilder: (context, index) {
-                                    final task = tasks[index];
-                                    return TaskItem(
-                                      key: ValueKey(task.id),
-                                      task: task,
-                                      boardColor: widget.board.color,
-                                      boardId: widget.board.id!,
-                                    );
-                                  },
-                                ),
+                          child: DragTarget<Task>(
+                            onAccept: (task) {
+                              // 跨工作板拖拽
+                              if (task.boardId != widget.board.id!) {
+                                provider.moveTaskToBoard(task, widget.board.id!);
+                              }
+                            },
+                            builder: (context, candidateData, rejectedData) {
+                              return Container(
+                                color: candidateData.isNotEmpty
+                                    ? widget.board.color.withOpacity(0.1)
+                                    : Colors.grey.shade50,
+                                child: tasks.isEmpty
+                                    ? Center(
+                                        child: Text(
+                                          '还没有任务',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade400,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      )
+                                    : ReorderableListView.builder(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        itemCount: tasks.length,
+                                        onReorder: (oldIndex, newIndex) {
+                                          provider.reorderTasks(
+                                              widget.board.id!, oldIndex, newIndex);
+                                        },
+                                        itemBuilder: (context, index) {
+                                          final task = tasks[index];
+                                          return DraggableTaskItem(
+                                            key: ValueKey(task.id),
+                                            task: task,
+                                            boardColor: widget.board.color,
+                                            boardId: widget.board.id!,
+                                          );
+                                        },
+                                      ),
+                              );
+                            },
+                          ),
                         ),
                       ],
                     ),
