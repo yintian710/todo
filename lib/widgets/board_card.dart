@@ -7,7 +7,7 @@ import '../models/board.dart';
 import '../models/task.dart';
 import '../providers/todo_provider.dart';
 import '../widgets/draggable_task_item.dart';
-import '../pages/board_window_page.dart';
+import '../widgets/task_item.dart';
 
 class BoardCard extends StatefulWidget {
   final Board board;
@@ -143,19 +143,85 @@ class _BoardCardState extends State<BoardCard> {
     );
   }
 
-  void _openBoardWindow() {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => BoardWindowPage(board: widget.board),
+  void _openFloatingWindow() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          width: 280,
+          height: 400,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              // 标题栏
+              Container(
+                decoration: BoxDecoration(
+                  color: widget.board.color,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.board.name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white, size: 18),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+              // 任务列表
+              Expanded(
+                child: Consumer<TodoProvider>(
+                  builder: (context, provider, child) {
+                    final tasks = provider.getTasksForBoard(widget.board.id!);
+
+                    if (tasks.isEmpty) {
+                      return Center(
+                        child: Text(
+                          '还没有任务',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                        ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(6),
+                      itemCount: tasks.length,
+                      itemBuilder: (context, index) {
+                        final task = tasks[index];
+                        return _CompactTaskItem(
+                          task: task,
+                          boardColor: widget.board.color,
+                          boardId: widget.board.id!,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('单独窗口仅在桌面平台支持')),
-      );
-    }
+      ),
+    );
   }
 
   void _startAddingTask() {
@@ -278,7 +344,7 @@ class _BoardCardState extends State<BoardCard> {
                           onSelected: (value) {
                             switch (value) {
                               case 'window':
-                                _openBoardWindow();
+                                _openFloatingWindow();
                                 break;
                               case 'color':
                                 _showColorPicker();
@@ -299,9 +365,9 @@ class _BoardCardState extends State<BoardCard> {
                                 value: 'window',
                                 child: Row(
                                   children: [
-                                    Icon(Icons.open_in_new),
+                                    Icon(Icons.picture_in_picture_alt),
                                     SizedBox(width: 8),
-                                    Text('单独窗口'),
+                                    Text('浮窗'),
                                   ],
                                 ),
                               ),
@@ -674,6 +740,136 @@ class _EmptyDragTarget extends StatelessWidget {
               : null,
         );
       },
+    );
+  }
+}
+
+// 浮窗用的紧凑型任务项
+class _CompactTaskItem extends StatelessWidget {
+  final Task task;
+  final Color boardColor;
+  final int boardId;
+
+  const _CompactTaskItem({
+    Key? key,
+    required this.task,
+    required this.boardColor,
+    required this.boardId,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.read<TodoProvider>();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(
+          color: task.isCompleted ? Colors.grey.shade300 : boardColor.withOpacity(0.3),
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 复选框
+          Transform.scale(
+            scale: 0.8,
+            child: Checkbox(
+              value: task.isCompleted,
+              onChanged: (_) {
+                provider.toggleTaskCompletion(task);
+              },
+              activeColor: boardColor,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+          const SizedBox(width: 4),
+          // 任务内容
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 任务标题
+                Text(
+                  task.title,
+                  style: TextStyle(
+                    fontSize: 11,
+                    decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                    color: task.isCompleted ? Colors.grey : Colors.black87,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                // 倒计时信息
+                if (task.deadline != null) ...[
+                  const SizedBox(height: 2),
+                  _buildCompactDeadline(task.deadline!),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactDeadline(DateTime deadline) {
+    final now = DateTime.now();
+    final difference = deadline.difference(now);
+    final isOverdue = difference.isNegative;
+
+    String timeText;
+    Color timeColor;
+
+    if (isOverdue) {
+      final overdueDuration = now.difference(deadline);
+      if (overdueDuration.inDays > 0) {
+        timeText = '超时 ${overdueDuration.inDays}天';
+      } else if (overdueDuration.inHours > 0) {
+        timeText = '超时 ${overdueDuration.inHours}小时';
+      } else {
+        timeText = '超时 ${overdueDuration.inMinutes}分钟';
+      }
+      timeColor = Colors.red;
+    } else {
+      if (difference.inDays > 0) {
+        timeText = '剩余 ${difference.inDays}天';
+        timeColor = difference.inDays <= 1 ? Colors.orange : Colors.green;
+      } else if (difference.inHours > 0) {
+        timeText = '剩余 ${difference.inHours}小时';
+        timeColor = Colors.orange;
+      } else {
+        timeText = '剩余 ${difference.inMinutes}分钟';
+        timeColor = Colors.red;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: timeColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.access_time, size: 10, color: timeColor),
+          const SizedBox(width: 2),
+          Text(
+            timeText,
+            style: TextStyle(
+              fontSize: 9,
+              color: timeColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
