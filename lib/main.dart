@@ -19,16 +19,11 @@ void main(List<String> args) async {
   print('args.length: ${args.length}');
 
   // 检查是否是子窗口
-  if (args.isNotEmpty) {
-    final windowId = int.tryParse(args.first);
-    print('windowId: $windowId');
-
-    if (windowId != null && windowId > 0) {
-      // 这是子窗口
-      print('检测到子窗口，启动 multi_window_entry');
-      multi_window_entry.main(args);
-      return;
-    }
+  // desktop_multi_window 的参数格式: ["multi_window", windowId, jsonArgs]
+  if (args.isNotEmpty && args.first == 'multi_window') {
+    print('检测到 desktop_multi_window 标识，启动子窗口');
+    multi_window_entry.main(args);
+    return;
   }
 
   print('启动主窗口');

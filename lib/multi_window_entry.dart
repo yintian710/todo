@@ -30,8 +30,9 @@ void main(List<String> args) async {
   }
 
   // 从参数中获取工作板信息
-  final windowId = args.isNotEmpty ? int.tryParse(args.first) ?? 0 : 0;
-  final arguments = args.length > 1 ? jsonDecode(args[1]) as Map<String, dynamic> : <String, dynamic>{};
+  // desktop_multi_window 参数格式: ["multi_window", windowId, jsonArgs]
+  final windowId = args.length > 1 ? int.tryParse(args[1].toString()) ?? 0 : 0;
+  final arguments = args.length > 2 ? jsonDecode(args[2]) as Map<String, dynamic> : <String, dynamic>{};
 
   print('windowId: $windowId');
   print('arguments: $arguments');
