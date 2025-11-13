@@ -35,15 +35,25 @@ class _BoardFloatingWindowState extends State<BoardFloatingWindow> with WindowLi
   }
 
   Future<void> _initWindow() async {
-    await windowManager.setAlwaysOnTop(_isAlwaysOnTop);
-    await windowManager.setTitle('${widget.arguments['boardName']} - 浮窗');
+    try {
+      await windowManager.setAlwaysOnTop(_isAlwaysOnTop);
+      await windowManager.setTitle('${widget.arguments['boardName']} - 浮窗');
+      print('窗口属性设置成功');
+    } catch (e) {
+      print('警告: 窗口属性设置失败（插件未注册）: $e');
+      // 继续运行，即使窗口管理器不可用
+    }
   }
 
   Future<void> _toggleAlwaysOnTop() async {
-    setState(() {
-      _isAlwaysOnTop = !_isAlwaysOnTop;
-    });
-    await windowManager.setAlwaysOnTop(_isAlwaysOnTop);
+    try {
+      setState(() {
+        _isAlwaysOnTop = !_isAlwaysOnTop;
+      });
+      await windowManager.setAlwaysOnTop(_isAlwaysOnTop);
+    } catch (e) {
+      print('警告: 切换置顶失败（插件未注册）: $e');
+    }
   }
 
   @override
@@ -100,7 +110,15 @@ class _BoardFloatingWindowState extends State<BoardFloatingWindow> with WindowLi
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white, size: 18),
                     onPressed: () async {
-                      await windowManager.close();
+                      try {
+                        await windowManager.close();
+                      } catch (e) {
+                        print('警告: 关闭窗口失败（插件未注册）: $e');
+                        // 如果 windowManager 不可用，直接退出应用
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      }
                     },
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
