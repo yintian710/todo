@@ -148,14 +148,14 @@ class _BoardCardState extends State<BoardCard> {
   Future<void> _openFloatingWindow() async {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       try {
-        final arguments = {
+        final arguments = jsonEncode({
           'boardId': widget.board.id,
           'boardName': widget.board.name,
           'boardColor': widget.board.color.value,
-        };
+        });
 
-        final windowController = await DesktopMultiWindow.createWindow(jsonEncode(arguments));
-        windowController
+        final window = await DesktopMultiWindow.createWindow(arguments);
+        window
           ..setFrame(const Offset(100, 100) & const Size(300, 450))
           ..center()
           ..setTitle('${widget.board.name} - 浮窗')
