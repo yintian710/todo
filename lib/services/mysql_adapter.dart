@@ -33,10 +33,35 @@ class MySQLAdapter implements DatabaseAdapter {
   @override
   Future<void> initialize() async {
     final settings = _parseUrl();
-    _connection = await MySqlConnection.connect(settings);
+
+    // 添加超时和重试逻辑
+    int retries = 3;
+    Duration timeout = const Duration(seconds: 10);
+
+    for (int i = 0; i < retries; i++) {
+      try {
+        print('[MySQL] 尝试连接数据库 (${i + 1}/$retries)...');
+        _connection = await MySqlConnection.connect(settings)
+            .timeout(timeout);
+        print('[MySQL] 连接成功');
+        break;
+      } catch (e) {
+        print('[MySQL] 连接失败 (${i + 1}/$retries): $e');
+        if (i == retries - 1) {
+          print('[MySQL] 所有重试都失败');
+          rethrow;
+        }
+        await Future.delayed(Duration(seconds: i + 1)); // 指数退避
+      }
+    }
 
     // 创建表（如果不存在）
-    await _createTables();
+    try {
+      await _createTables();
+    } catch (e) {
+      print('[MySQL] 创建表失败: $e');
+      // 表可能已存在，继续
+    }
   }
 
   @override
@@ -105,6 +130,29 @@ class MySQLAdapter implements DatabaseAdapter {
       throw Exception('Database not initialized. Call initialize() first.');
     }
     return _connection!;
+  }
+
+  /// 执行查询，如果连接断开则自动重连
+  Future<Results> _executeQuery(String sql, [List<Object?>? params]) async {
+    try {
+      return await _conn.query(sql, params);
+    } catch (e) {
+      // 如果是连接问题，尝试重连
+      if (e.toString().contains('socket') ||
+          e.toString().contains('closed') ||
+          e.toString().contains('timeout')) {
+        print('[MySQL] 连接异常，尝试重新连接: $e');
+        try {
+          _connection = null;
+          await initialize();
+          return await _conn.query(sql, params);
+        } catch (reconnectError) {
+          print('[MySQL] 重连失败: $reconnectError');
+          rethrow;
+        }
+      }
+      rethrow;
+    }
   }
 
   /// 将 DateTime 转换为 UTC（MySQL 要求）

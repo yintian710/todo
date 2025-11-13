@@ -23,18 +23,19 @@ void main(List<String> args) async {
     databaseFactory = databaseFactoryFfi;
   }
 
-  // 初始化数据库路径（使用与主窗口相同的配置）
+  // 初始化数据库（子窗口是独立进程，需要自己的连接）
   try {
     final configService = await ConfigService.getInstance();
     final dbPath = configService.databasePath;
     if (dbPath != null) {
       await DatabaseService.setDatabasePath(dbPath);
-      print('子窗口数据库路径设置成功: $dbPath');
+      print('子窗口数据库连接已建立: $dbPath');
     } else {
       print('警告: 未找到数据库配置，使用默认路径');
     }
   } catch (e) {
-    print('警告: 数据库路径设置失败: $e');
+    print('警告: 数据库初始化失败: $e');
+    print('子窗口将无法显示任务数据');
   }
 
   // 初始化窗口管理器
