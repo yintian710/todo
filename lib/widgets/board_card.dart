@@ -154,13 +154,24 @@ class _BoardCardState extends State<BoardCard> {
           'boardColor': widget.board.color.value,
         });
 
+        print('=== 创建浮窗 ===');
+        print('boardId: ${widget.board.id}');
+        print('boardName: ${widget.board.name}');
+        print('arguments: $arguments');
+
         final windowController = await DesktopMultiWindow.createWindow(arguments);
+
+        print('窗口创建成功，windowController ID: ${windowController.windowId}');
+
         await windowController
           .setFrame(const Offset(100, 100) & const Size(300, 450));
         await windowController.center();
         await windowController.setTitle('${widget.board.name} - 浮窗');
         await windowController.show();
+
+        print('浮窗显示成功');
       } catch (e) {
+        print('创建浮窗失败: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('创建浮窗失败: $e')),

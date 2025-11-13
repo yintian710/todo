@@ -11,6 +11,10 @@ import 'pages/board_floating_window.dart';
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  print('=== 子窗口启动 ===');
+  print('args: $args');
+  print('args.length: ${args.length}');
+
   // 初始化 sqflite_ffi for desktop
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     sqfliteFfiInit();
@@ -20,6 +24,7 @@ void main(List<String> args) async {
   // 初始化窗口管理器
   try {
     await windowManager.ensureInitialized();
+    print('子窗口 window_manager 初始化成功');
   } catch (e) {
     print('警告: 子窗口的 window_manager 初始化失败: $e');
   }
@@ -27,6 +32,9 @@ void main(List<String> args) async {
   // 从参数中获取工作板信息
   final windowId = args.isNotEmpty ? int.tryParse(args.first) ?? 0 : 0;
   final arguments = args.length > 1 ? jsonDecode(args[1]) as Map<String, dynamic> : <String, dynamic>{};
+
+  print('windowId: $windowId');
+  print('arguments: $arguments');
 
   runApp(
     MultiProvider(

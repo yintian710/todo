@@ -14,21 +14,24 @@ import 'multi_window_entry.dart' as multi_window_entry;
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  print('=== 启动参数 ===');
+  print('args: $args');
+  print('args.length: ${args.length}');
+
   // 检查是否是子窗口
   if (args.isNotEmpty) {
     final windowId = int.tryParse(args.first);
+    print('windowId: $windowId');
+
     if (windowId != null && windowId > 0) {
       // 这是子窗口
+      print('检测到子窗口，启动 multi_window_entry');
       multi_window_entry.main(args);
       return;
     }
   }
 
-  // 为桌面平台注册多窗口支持
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    // 注册子窗口的入口点
-    // 当创建新窗口时，Flutter会用新的参数重新调用main函数
-  }
+  print('启动主窗口');
 
   // 桌面平台窗口初始化
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
