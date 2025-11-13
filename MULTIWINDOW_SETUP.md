@@ -1,9 +1,48 @@
 # 多窗口功能设置指南
 
-## 当前问题
-`desktop_multi_window` 包未成功安装，导致编译错误。
+## 常见问题
 
-## 解决步骤
+### 问题 1: MissingPluginException - window_manager 未注册
+**错误信息**：
+```
+MissingPluginException(No implementation found for method ensureInitialized on channel window_manager)
+```
+
+**原因**：Flutter 桌面插件未正确注册到原生代码中。
+
+**解决方案**：
+```bash
+# 1. 清理构建缓存
+flutter clean
+
+# 2. 重新获取依赖（会自动生成插件注册文件）
+flutter pub get
+
+# 3. 如果插件注册文件仍未生成，强制重新创建平台代码
+flutter create --platforms=windows,linux,macos .
+
+# 4. 再次获取依赖
+flutter pub get
+
+# 5. 重新运行应用
+flutter run -d windows  # 或 linux/macos
+```
+
+**验证插件注册**：
+检查以下文件是否包含 `WindowManagerPlugin` 和 `DesktopMultiWindowPlugin`：
+- Windows: `windows/flutter/generated_plugin_registrant.cc`
+- Linux: `linux/flutter/generated_plugin_registrant.cc`
+- macOS: `macos/Flutter/GeneratedPluginRegistrant.swift`
+
+### 问题 2: desktop_multi_window 包未安装
+**错误信息**：
+```
+Undefined name 'DesktopMultiWindow'
+```
+
+**原因**：依赖包未成功安装。
+
+## 完整设置步骤
 
 ### 步骤 1：安装依赖
 在项目根目录运行：

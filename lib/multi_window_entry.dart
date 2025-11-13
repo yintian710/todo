@@ -18,7 +18,11 @@ void main(List<String> args) async {
   }
 
   // 初始化窗口管理器
-  await windowManager.ensureInitialized();
+  try {
+    await windowManager.ensureInitialized();
+  } catch (e) {
+    print('警告: 子窗口的 window_manager 初始化失败: $e');
+  }
 
   // 从参数中获取工作板信息
   final windowId = args.isNotEmpty ? int.tryParse(args.first) ?? 0 : 0;
