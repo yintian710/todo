@@ -1,10 +1,7 @@
-import 'dart:io';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:desktop_multi_window/desktop_multi_window.dart';
 import '../models/board.dart';
 import '../models/task.dart';
 import '../providers/todo_provider.dart';
@@ -145,48 +142,6 @@ class _BoardCardState extends State<BoardCard> {
     );
   }
 
-  Future<void> _openFloatingWindow() async {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      try {
-        final arguments = jsonEncode({
-          'boardId': widget.board.id,
-          'boardName': widget.board.name,
-          'boardColor': widget.board.color.value,
-        });
-
-        print('=== 创建浮窗 ===');
-        print('boardId: ${widget.board.id}');
-        print('boardName: ${widget.board.name}');
-        print('arguments: $arguments');
-
-        final windowController = await DesktopMultiWindow.createWindow(arguments);
-
-        print('窗口创建成功，windowController ID: ${windowController.windowId}');
-
-        await windowController
-          .setFrame(const Offset(100, 100) & const Size(300, 450));
-        await windowController.center();
-        await windowController.setTitle('${widget.board.name} - 浮窗');
-        await windowController.show();
-
-        print('浮窗显示成功');
-      } catch (e) {
-        print('创建浮窗失败: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('创建浮窗失败: $e')),
-          );
-        }
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('浮窗仅在桌面平台支持')),
-        );
-      }
-    }
-  }
-
   void _startAddingTask() {
     setState(() {
       _isAddingTask = true;
@@ -306,9 +261,6 @@ class _BoardCardState extends State<BoardCard> {
                           icon: const Icon(Icons.more_vert, color: Colors.white),
                           onSelected: (value) {
                             switch (value) {
-                              case 'window':
-                                _openFloatingWindow();
-                                break;
                               case 'color':
                                 _showColorPicker();
                                 break;
@@ -321,19 +273,6 @@ class _BoardCardState extends State<BoardCard> {
                             }
                           },
                           itemBuilder: (context) => [
-                            if (Platform.isWindows ||
-                                Platform.isLinux ||
-                                Platform.isMacOS)
-                              const PopupMenuItem(
-                                value: 'window',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.picture_in_picture_alt),
-                                    SizedBox(width: 8),
-                                    Text('浮窗'),
-                                  ],
-                                ),
-                              ),
                             const PopupMenuItem(
                               value: 'color',
                               child: Row(

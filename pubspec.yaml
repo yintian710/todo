@@ -26,7 +26,6 @@ dependencies:
 
   # 桌面窗口管理
   window_manager: ^0.3.7
-  desktop_multi_window: ^0.2.0
 
   # 文件选择
   file_picker: ^6.1.1

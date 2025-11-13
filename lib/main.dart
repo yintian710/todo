@@ -2,31 +2,15 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:desktop_multi_window/desktop_multi_window.dart';
 
 import 'providers/todo_provider.dart';
 import 'services/config_service.dart';
 import 'services/database_service.dart';
 import 'pages/config_page.dart';
 import 'pages/home_page.dart';
-import 'multi_window_entry.dart' as multi_window_entry;
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  print('=== 启动参数 ===');
-  print('args: $args');
-  print('args.length: ${args.length}');
-
-  // 检查是否是子窗口
-  // desktop_multi_window 的参数格式: ["multi_window", windowId, jsonArgs]
-  if (args.isNotEmpty && args.first == 'multi_window') {
-    print('检测到 desktop_multi_window 标识，启动子窗口');
-    multi_window_entry.main(args);
-    return;
-  }
-
-  print('启动主窗口');
 
   // 桌面平台窗口初始化
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
