@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
@@ -20,18 +22,52 @@ class BoardFloatingWindow extends StatefulWidget {
 
 class _BoardFloatingWindowState extends State<BoardFloatingWindow> with WindowListener {
   bool _isAlwaysOnTop = true;
+  Timer? _syncTimer;
+  bool _isSyncing = false;
 
   @override
   void initState() {
     super.initState();
     windowManager.addListener(this);
     _initWindow();
+    _startAutoSync();
   }
 
   @override
   void dispose() {
+    _syncTimer?.cancel();
     windowManager.removeListener(this);
     super.dispose();
+  }
+
+  void _startAutoSync() {
+    // 每5秒自动同步一次
+    _syncTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        _syncData();
+      }
+    });
+  }
+
+  Future<void> _syncData() async {
+    if (_isSyncing) return;
+
+    setState(() {
+      _isSyncing = true;
+    });
+
+    try {
+      await context.read<TodoProvider>().loadData();
+      print('浮窗数据同步成功');
+    } catch (e) {
+      print('浮窗数据同步失败: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSyncing = false;
+        });
+      }
+    }
   }
 
   Future<void> _initWindow() async {
@@ -93,6 +129,25 @@ class _BoardFloatingWindowState extends State<BoardFloatingWindow> with WindowLi
                       ),
                     ),
                   ),
+                  // 同步按钮
+                  if (_isSyncing)
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  else
+                    IconButton(
+                      icon: const Icon(Icons.sync, color: Colors.white, size: 18),
+                      onPressed: _syncData,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: '同步数据',
+                    ),
+                  const SizedBox(width: 8),
                   // 置顶按钮
                   IconButton(
                     icon: Icon(
@@ -109,19 +164,14 @@ class _BoardFloatingWindowState extends State<BoardFloatingWindow> with WindowLi
                   // 关闭按钮
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white, size: 18),
-                    onPressed: () async {
-                      try {
-                        await windowManager.close();
-                      } catch (e) {
-                        print('警告: 关闭窗口失败（插件未注册）: $e');
-                        // 如果 windowManager 不可用，直接退出应用
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                        }
-                      }
+                    onPressed: () {
+                      print('关闭浮窗');
+                      // 直接退出子窗口进程
+                      exit(0);
                     },
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
+                    tooltip: '关闭',
                   ),
                 ],
               ),
