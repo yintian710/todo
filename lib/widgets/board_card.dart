@@ -154,12 +154,12 @@ class _BoardCardState extends State<BoardCard> {
           'boardColor': widget.board.color.value,
         });
 
-        final window = await DesktopMultiWindow.createWindow(arguments);
-        window
-          ..setFrame(const Offset(100, 100) & const Size(300, 450))
-          ..center()
-          ..setTitle('${widget.board.name} - 浮窗')
-          ..show();
+        final windowController = await DesktopMultiWindow.createWindow(arguments);
+        await windowController
+          .setFrame(const Offset(100, 100) & const Size(300, 450));
+        await windowController.center();
+        await windowController.setTitle('${widget.board.name} - 浮窗');
+        await windowController.show();
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
