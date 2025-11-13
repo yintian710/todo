@@ -24,6 +24,12 @@ void main(List<String> args) async {
     }
   }
 
+  // 为桌面平台注册多窗口支持
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    // 注册子窗口的入口点
+    // 当创建新窗口时，Flutter会用新的参数重新调用main函数
+  }
+
   // 桌面平台窗口初始化
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     await windowManager.ensureInitialized();
