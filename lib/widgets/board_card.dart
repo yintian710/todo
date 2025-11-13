@@ -147,22 +147,23 @@ class _BoardCardState extends State<BoardCard> {
 
   Future<void> _openFloatingWindow() async {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      final arguments = jsonEncode({
+      final arguments = {
         'boardId': widget.board.id,
         'boardName': widget.board.name,
         'boardColor': widget.board.color.value,
-      });
+      };
 
-      final window = await DesktopMultiWindow.createWindow(arguments);
-      window
-        ..setFrame(const Offset(100, 100) & const Size(300, 450))
-        ..center()
-        ..setTitle('${widget.board.name} - 浮窗')
-        ..show();
+      final window = await DesktopMultiWindow.createWindow(jsonEncode(arguments));
+      await window.setFrame(const Offset(100, 100) & const Size(300, 450));
+      await window.center();
+      await window.setTitle('${widget.board.name} - 浮窗');
+      await window.show();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('浮窗仅在桌面平台支持')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('浮窗仅在桌面平台支持')),
+        );
+      }
     }
   }
 

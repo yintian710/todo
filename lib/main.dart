@@ -12,20 +12,16 @@ import 'pages/home_page.dart';
 import 'multi_window_entry.dart' as multi_window_entry;
 
 void main(List<String> args) async {
-  // 如果是子窗口，使用子窗口入口
-  if (args.firstOrNull == 'multi_window') {
-    multi_window_entry.main(args);
-    return;
-  }
-
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 注册子窗口入口点
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    DesktopMultiWindow.setMethodHandler((call, fromWindowId) async {
-      // 处理来自其他窗口的方法调用
-      return null;
-    });
+  // 检查是否是子窗口
+  if (args.isNotEmpty) {
+    final windowId = int.tryParse(args.first);
+    if (windowId != null && windowId > 0) {
+      // 这是子窗口
+      multi_window_entry.main(args);
+      return;
+    }
   }
 
   // 桌面平台窗口初始化
