@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:desktop_multi_window/desktop_multi_window.dart' as multi_window;
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import '../models/board.dart';
 import '../models/task.dart';
 import '../providers/todo_provider.dart';
@@ -154,7 +154,7 @@ class _BoardCardState extends State<BoardCard> {
           'boardColor': widget.board.color.value,
         };
 
-        final windowController = await multi_window.DesktopMultiWindow.createWindow(jsonEncode(arguments));
+        final windowController = await DesktopMultiWindow.createWindow(jsonEncode(arguments));
         windowController
           ..setFrame(const Offset(100, 100) & const Size(300, 450))
           ..center()
