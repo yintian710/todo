@@ -147,17 +147,26 @@ class _BoardCardState extends State<BoardCard> {
 
   Future<void> _openFloatingWindow() async {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      final arguments = {
-        'boardId': widget.board.id,
-        'boardName': widget.board.name,
-        'boardColor': widget.board.color.value,
-      };
+      try {
+        final arguments = {
+          'boardId': widget.board.id,
+          'boardName': widget.board.name,
+          'boardColor': widget.board.color.value,
+        };
 
-      final window = await DesktopMultiWindow.createWindow(jsonEncode(arguments));
-      await window.setFrame(const Offset(100, 100) & const Size(300, 450));
-      await window.center();
-      await window.setTitle('${widget.board.name} - 浮窗');
-      await window.show();
+        final windowController = await DesktopMultiWindow.createWindow(jsonEncode(arguments));
+        windowController
+          ..setFrame(const Offset(100, 100) & const Size(300, 450))
+          ..center()
+          ..setTitle('${widget.board.name} - 浮窗')
+          ..show();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('创建浮窗失败: $e')),
+          );
+        }
+      }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
